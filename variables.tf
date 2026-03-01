@@ -5,20 +5,20 @@ variable "env_name" {
 
 variable "vpc_cidr" {
   description = "vpc cidr"
-  type = string
+  type        = string
 }
 
 variable "public_subnet_cidr" {
   description = "public subnet cidr"
-  type = string
+  type        = string
 }
 
 variable "app_subnet_cidr" {
   description = "app subnet cidr"
-  type = string
+  type        = string
 }
 
 variable "data_subnet_cidr" {
   description = "data subnet cidr"
-  type = string
+  type        = string
 }
