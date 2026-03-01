@@ -1,0 +1,5 @@
+env_name           = "prod"
+vpc_cidr           = "10.2.0.0/16"
+public_subnet_cidr = "10.2.0.0/22"
+app_subnet_cidr    = "10.2.4.0/22"
+data_subnet_cidr   = "10.2.8.0/22"

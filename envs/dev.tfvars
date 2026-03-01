@@ -1,0 +1,5 @@
+env_name           = "dev"
+vpc_cidr           = "10.1.0.0/16"
+public_subnet_cidr = "10.1.0.0/22"
+app_subnet_cidr    = "10.1.4.0/22"
+data_subnet_cidr   = "10.1.8.0/22"
