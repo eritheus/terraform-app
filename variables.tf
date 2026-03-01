@@ -1,25 +1,24 @@
-variable {
-  name        = "env_name"
-  description = "The ID of the project in which to provision resources."
+variable "env_name" {
+  description = "environment name"
   type        = string
 }
 
-variable {
-  name = "vpc_cidr"
+variable "vpc_cidr" {
+  description = "vpc cidr"
   type = string
 }
 
-variable {
-  name = "public_subnet_cidr"
+variable "public_subnet_cidr" {
+  description = "public subnet cidr"
   type = string
 }
 
-variable {
-  name = "app_subnet_cidr"
+variable "app_subnet_cidr" {
+  description = "app subnet cidr"
   type = string
 }
 
-variable {
-  name = "data_subnet_cidr"
+variable "data_subnet_cidr" {
+  description = "data subnet cidr"
   type = string
 }
