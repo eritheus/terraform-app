@@ -29,10 +29,10 @@ resource "aws_dynamodb_table" "customer_registration" {
 
 output "customer_table_name" {
   description = "Customer DynamoDB table name"
-  value       = aws_dynamodb_table.customer.name
+  value       = aws_dynamodb_table.customer_registration.name
 }
 
 output "customer_table_arn" {
   description = "Customer DynamoDB table ARN"
-  value       = aws_dynamodb_table.customer.arn
+  value       = aws_dynamodb_table.customer_registration.arn
 }
