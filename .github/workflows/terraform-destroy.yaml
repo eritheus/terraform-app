@@ -10,6 +10,13 @@ on:
         options:
           - dev
           - prod
+      confirmation:
+        description: 'Confirm destruction of infrastructure'
+        required: true
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   terraform-destroy:
@@ -36,6 +43,15 @@ jobs:
 
       - name: Terraform Workspace Select
         run: terraform workspace select ${{ inputs.environment }}
+
+      - name: Confirm Destruction
+        run: |
+          if ("${{ inputs.confirmation }}" -ne "true") {
+            Write-Error "Destruction cancelled. Confirmation must be set to 'true'."
+            exit 1
+          }
+          Write-Output "✓ Destruction confirmed for ${{ inputs.environment }} environment"
+        shell: pwsh
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -input=false -var-file="envs/${{ inputs.environment }}.tfvars"
