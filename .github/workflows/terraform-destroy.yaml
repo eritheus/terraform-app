@@ -89,4 +89,4 @@ jobs:
           name: tfplan-${{ inputs.environment }}
 
       - name: Terraform Destroy Apply
-        run: terraform apply tfplan -auto-approve -input=false
+        run: terraform apply tfplan
