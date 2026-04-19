@@ -8,19 +8,24 @@ variable "vpc_cidr" {
   type        = string
 }
 
-variable "public_subnet_cidr" {
-  description = "public subnet cidr"
-  type        = string
+variable "availability_zones" {
+  description = "availability zones to spread subnets across (one per AZ)"
+  type        = list(string)
 }
 
-variable "app_subnet_cidr" {
-  description = "app subnet cidr"
-  type        = string
+variable "public_subnet_cidrs" {
+  description = "public subnet cidrs, one per AZ, same order as availability_zones"
+  type        = list(string)
 }
 
-variable "data_subnet_cidr" {
-  description = "data subnet cidr"
-  type        = string
+variable "app_subnet_cidrs" {
+  description = "app subnet cidrs, one per AZ, same order as availability_zones"
+  type        = list(string)
+}
+
+variable "data_subnet_cidrs" {
+  description = "data subnet cidrs, one per AZ, same order as availability_zones"
+  type        = list(string)
 }
 
 variable "customer_dynamo_table_table" {
