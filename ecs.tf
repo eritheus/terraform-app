@@ -1,4 +1,4 @@
 module "ecs_app_cluster" {
-  source = "https://github.com/eritheus/terraform-modules.git/ecs/"
+  source = "git::https://github.com/eritheus/terraform-modules.git//ecs?ref=main"
 
 }
