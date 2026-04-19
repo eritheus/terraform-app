@@ -1,0 +1,117 @@
+name: 'Terraform Apply'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to apply (dev, prod, etc.)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  terraform-plan:
+    name: 'Terraform Plan - ${{ inputs.environment }}'
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_ENVIRONMENT: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.ERITHEUS_APP_ID }}
+          private-key: ${{ secrets.ERITHEUS_APP_PRIVATE_KEY }}
+          owner: eritheus
+          repositories: terraform-modules
+
+      - name: Configure git auth
+        run: |
+          git config --global url."https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Workspace Select or Create
+        run: terraform workspace select -or-create ${{ inputs.environment }}
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -var-file="envs/${{ inputs.environment }}.tfvars" -out=tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: tfplan
+          retention-days: 1
+
+  approval-request:
+    name: 'Approval Required for ${{ inputs.environment }} Apply'
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    environment: approval-${{ inputs.environment }}
+
+    steps:
+      - name: Request Approval
+        run: |
+          echo "⚠️  Approval required to apply on ${{ inputs.environment }} environment"
+          echo "✓ This workflow will be paused until an approver reviews this request"
+
+  terraform-apply:
+    name: 'Terraform Apply - ${{ inputs.environment }}'
+    runs-on: ubuntu-latest
+    needs: approval-request
+
+    environment: ${{ inputs.environment }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_ENVIRONMENT: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.ERITHEUS_APP_ID }}
+          private-key: ${{ secrets.ERITHEUS_APP_PRIVATE_KEY }}
+          owner: eritheus
+          repositories: terraform-modules
+
+      - name: Configure git auth
+        run: |
+          git config --global url."https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Workspace Select or Create
+        run: terraform workspace select -or-create ${{ inputs.environment }}
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false tfplan
