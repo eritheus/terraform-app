@@ -3,8 +3,10 @@ locals {
 }
 
 resource "aws_vpc" "app_vpc" {
-  cidr_block = var.vpc_cidr
-  region     = "us-east-2"
+  cidr_block           = var.vpc_cidr
+  region               = "us-east-2"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
     Name = "${var.env_name}-vpc"
