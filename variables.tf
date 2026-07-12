@@ -30,20 +30,8 @@ variable "data_subnet_cidrs" {
 
 variable "customer_dynamo_table_table" {
   description = "Customer DynamoDB table name"
-  default     = "customer-registration-"
+  default     = "customer-registration"
   type        = string
-}
-
-variable "read_capacity_units" {
-  description = "DynamoDB read capacity units"
-  type        = number
-  default     = 5
-}
-
-variable "write_capacity_units" {
-  description = "DynamoDB write capacity units"
-  type        = number
-  default     = 5
 }
 
 variable "table_ttl_attribute_name" {
