@@ -29,3 +29,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 /.vs
+
+# terraform diagram generation (transient)
+zzz_diagram_override.tf
+.terraform.diagrams/
+.DS_Store

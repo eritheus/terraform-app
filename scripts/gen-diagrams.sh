@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+#
+# Generate Terraform resource diagrams and keep the "snapshot" fresh in README.md.
+#
+#   * Mermaid  -> injected between <!-- BEGIN_DIAGRAM --> / <!-- END_DIAGRAM -->
+#                 (GitHub renders it inline; it is THE picture). Deterministic
+#                 text, identical across Terraform versions and OSes.
+#   * SVG      -> docs/diagrams/<name>.svg, rendered from our own cleaned+colored
+#                 graph. Its layout depends on the local Graphviz build, so it is
+#                 committed by the local hook only. CI sets DIAGRAMS_SKIP_SVG=1
+#                 and refreshes just the Mermaid, avoiding cross-machine churn.
+#
+# Engine: `terraform graph` (authoritative — it sees inside modules; supports the
+# old <=1.5 and new >=1.6 output formats). Runs offline (local backend override).
+#
+# Modes (auto-detected):
+#   * root    -> the current repo IS a Terraform root (has *.tf here).
+#   * library -> the repo is a collection of modules; each immediate subdir with
+#                *.tf is graphed on its own (e.g. terraform-modules).
+#
+# Env: DIAGRAMS_SKIP_SVG=1 refreshes only the Mermaid (no Graphviz needed).
+#      WITH_INFRAMAP=1 also emits docs/diagrams/<name>.inframap.svg (best-effort).
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+conv="$root/scripts/tfgraph2mermaid.py"
+outdir="docs/diagrams"
+mkdir -p "$outdir"
+skip_svg="${DIAGRAMS_SKIP_SVG:-0}"
+
+command -v terraform >/dev/null || { echo "ERROR: terraform not found" >&2; exit 1; }
+if [ "$skip_svg" != "1" ]; then
+  command -v dot >/dev/null || { echo "ERROR: graphviz 'dot' not found (brew install graphviz)" >&2; exit 1; }
+fi
+
+frag="$(mktemp)"
+trap 'rm -f "$frag"' EXIT
+
+gen_one() { # <dir> <name>
+  local dir="$1" name="$2" dotf
+  dotf="$(mktemp)"
+  echo "  -> $name" >&2
+  (
+    cd "$dir"
+    # Fast path: reuse an already-initialized .terraform (no cloud creds needed —
+    # `terraform graph` reads the config graph, not remote state).
+    if [ -d .terraform ] && terraform graph 2>/dev/null | grep -q digraph; then
+      terraform graph 2>/dev/null
+    else
+      # Fallback: initialize a throwaway data dir with a LOCAL backend override so
+      # graph works offline even when the repo declares an S3 backend. The real
+      # .terraform is left untouched; providers are reused via the plugin cache.
+      export TF_DATA_DIR=.terraform.diagrams
+      export TF_PLUGIN_CACHE_DIR="${TF_PLUGIN_CACHE_DIR:-$HOME/.terraform.d/plugin-cache}"
+      mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      had_lock=0; [ -f .terraform.lock.hcl ] && had_lock=1
+      printf 'terraform {\n  backend "local" {}\n}\n' > zzz_diagram_override.tf
+      terraform init -input=false -no-color >/dev/null 2>&1
+      terraform graph 2>/dev/null
+      rm -rf zzz_diagram_override.tf "$TF_DATA_DIR"
+      # remove the lock file only if init created it (modules have none of their
+      # own). An `if` (not `&&`) so a false test doesn't become the subshell's
+      # non-zero exit code and trip `set -e`.
+      if [ "$had_lock" = "0" ]; then rm -f .terraform.lock.hcl; fi
+    fi
+  ) > "$dotf"
+
+  if ! grep -q digraph "$dotf"; then
+    echo "ERROR: could not produce a graph for '$name' (terraform init/graph failed)" >&2
+    rm -f "$dotf"; return 1
+  fi
+
+  # SVG is rendered from OUR cleaned+colored DOT (not the raw terraform graph),
+  # so it matches the Mermaid view. Skipped in CI to avoid cross-machine churn.
+  if [ "$skip_svg" != "1" ]; then
+    python3 "$conv" "$name" --format dot < "$dotf" | dot -Tsvg > "$outdir/$name.svg"
+  fi
+
+  # The SVG link is emitted unconditionally so README.md is byte-identical whether
+  # or not this run rendered the SVG (the file itself is committed by the hook).
+  {
+    echo
+    echo "### \`$name\`"
+    echo
+    echo "[Abrir como SVG]($outdir/$name.svg)"
+    echo
+    python3 "$conv" "$name" < "$dotf"
+    echo
+  } >> "$frag"
+
+  if [ "${WITH_INFRAMAP:-0}" = "1" ] && command -v inframap >/dev/null; then
+    inframap generate --hcl --raw "$dir" 2>/dev/null | dot -Tsvg > "$outdir/$name.inframap.svg" || true
+  fi
+
+  rm -f "$dotf"
+}
+
+shopt -s nullglob
+root_tf=(*.tf)
+if [ "${#root_tf[@]}" -gt 0 ]; then
+  gen_one "." "$(basename "$root")"
+else
+  echo "No *.tf in root — treating repo as a module library." >&2
+  for d in */; do
+    d="${d%/}"
+    sub=("$d"/*.tf)
+    [ "${#sub[@]}" -gt 0 ] || continue
+    gen_one "$d" "$d"
+  done
+fi
+
+python3 - "$root/README.md" "$frag" <<'PY'
+import re, sys, pathlib
+readme, frag = sys.argv[1], sys.argv[2]
+BEGIN, END = "<!-- BEGIN_DIAGRAM -->", "<!-- END_DIAGRAM -->"
+body = pathlib.Path(frag).read_text().strip()
+p = pathlib.Path(readme)
+text = p.read_text() if p.exists() else "# " + p.parent.name + "\n"
+block = f"{BEGIN}\n{body}\n{END}"
+if BEGIN in text and END in text:
+    text = re.sub(re.escape(BEGIN) + ".*?" + re.escape(END), lambda _: block, text, flags=re.S)
+else:
+    text = text.rstrip() + "\n\n## Infrastructure diagram\n\n_Auto-generated by `make diagrams` — do not edit between the markers._\n\n" + block + "\n"
+p.write_text(text)
+print("README.md and %s/ updated." % "docs/diagrams", file=sys.stderr)
+PY

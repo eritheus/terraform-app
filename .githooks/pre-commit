@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# Regenerate Terraform diagrams whenever a .tf file is committed, and stage the
+# refreshed README.md / docs/diagrams so the snapshot never drifts.
+#
+# Enable once per clone:  git config core.hooksPath .githooks   (or: make hooks)
+#
+# If terraform/graphviz are missing, the hook skips silently — the GitHub Action
+# is the safety net that regenerates on push.
+set -euo pipefail
+
+git diff --cached --name-only --diff-filter=ACMR | grep -q '\.tf$' || exit 0
+
+if ! command -v terraform >/dev/null 2>&1 || ! command -v dot >/dev/null 2>&1; then
+  echo "diagrams hook: terraform/graphviz not found — skipping (CI will regenerate)."
+  exit 0
+fi
+
+echo "diagrams hook: regenerating Terraform diagrams..."
+./scripts/gen-diagrams.sh
+git add README.md docs/diagrams 2>/dev/null || true

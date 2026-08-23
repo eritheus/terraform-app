@@ -1,0 +1,64 @@
+name: 'Diagrams'
+
+# Keeps the resource diagram in README.md in sync with the .tf files.
+# On every push that touches Terraform, it regenerates the Mermaid + SVG and
+# commits the result back (commit-back), so the snapshot never drifts.
+
+on:
+  push:
+    paths:
+      - '**.tf'
+      - 'scripts/**'
+      - '.github/workflows/diagrams.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagrams-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # terraform-app consumes private modules from eritheus/terraform-modules;
+      # the app token lets `terraform init` fetch them over git.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.ERITHEUS_APP_ID }}
+          private-key: ${{ secrets.ERITHEUS_APP_PRIVATE_KEY }}
+          owner: eritheus
+          repositories: terraform-modules
+
+      - name: Configure git auth
+        run: |
+          git config --global url."https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false   # required: `terraform graph` output must be raw
+
+
+      - name: Generate diagrams (Mermaid only)
+        run: ./scripts/gen-diagrams.sh
+        env:
+          DIAGRAMS_SKIP_SVG: '1'
+
+      - name: Commit refreshed README
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- README.md; then
+            echo "No diagram changes."
+          else
+            git add README.md
+            git commit -m "docs: refresh terraform diagrams [skip ci]"
+            git push
+          fi
