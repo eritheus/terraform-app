@@ -19,7 +19,9 @@ flowchart LR
   classDef observability fill:#F3E5F5,stroke:#8E24AA,color:#4A148C;
   classDef other fill:#ECEFF1,stroke:#78909C,color:#37474F;
   subgraph root["terraform-app · raiz"]
+    n_aws_ecr_lifecycle_policy_customer_registration_app["ECR Lifecycle Policy - customer_registration_app"]:::data
     n_aws_ecr_lifecycle_policy_nginx["ECR Lifecycle Policy - nginx"]:::data
+    n_aws_ecr_repository_customer_registration_app["ECR Repository - customer_registration_app"]:::data
     n_aws_ecr_repository_nginx["ECR Repository - nginx"]:::data
     n_aws_security_group_ecs_app["Security Group - ecs_app"]:::security
     n_aws_security_group_vpc_endpoints["Security Group - vpc_endpoints"]:::security
@@ -50,6 +52,7 @@ flowchart LR
   subgraph mod_n_ecs_cluster["Módulo - ecs_cluster"]
     n_module_ecs_cluster_aws_ecs_cluster_this["ECS Cluster - this"]:::compute
   end
+  n_aws_ecr_lifecycle_policy_customer_registration_app --> n_aws_ecr_repository_customer_registration_app
   n_aws_ecr_lifecycle_policy_nginx --> n_aws_ecr_repository_nginx
   n_aws_security_group_ecs_app --> n_aws_vpc_app_vpc
   n_aws_security_group_vpc_endpoints --> n_aws_vpc_app_vpc
@@ -73,7 +76,7 @@ flowchart LR
   n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_execution_policy --> n_module_ecs_app_product_registration_aws_iam_role_ecs_task_execution_role
   mod_n_ecs_app_customer_registration ==>|usa| mod_n_ecs_cluster
   mod_n_ecs_app_product_registration ==>|usa| mod_n_ecs_cluster
-  mod_n_ecs_app_customer_registration -. usa .-> n_aws_ecr_repository_nginx
+  mod_n_ecs_app_customer_registration -. usa .-> n_aws_ecr_repository_customer_registration_app
   mod_n_ecs_app_customer_registration -. usa .-> n_aws_security_group_ecs_app
   mod_n_ecs_app_customer_registration -. usa .-> n_aws_subnet_app
   mod_n_ecs_app_product_registration -. usa .-> n_aws_ecr_repository_nginx
