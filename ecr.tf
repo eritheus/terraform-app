@@ -39,3 +39,43 @@ output "nginx_repository_url" {
   description = "ECR repository URL for the mirrored nginx image"
   value       = aws_ecr_repository.nginx.repository_url
 }
+
+# App image built and pushed by customer-registration-app's CI (build-and-push.yml).
+# Name has no env prefix to match the repo the workflow already created/pushes to.
+resource "aws_ecr_repository" "customer_registration_app" {
+  name         = "customer-registration-app"
+  force_delete = true
+
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+
+  tags = {
+    Environment = var.env_name
+    Name        = "customer-registration-app"
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "customer_registration_app" {
+  repository = aws_ecr_repository.customer_registration_app.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 3 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 3
+        }
+        action = { type = "expire" }
+      }
+    ]
+  })
+}
+
+output "customer_registration_app_repository_url" {
+  description = "ECR repository URL for the customer-registration-app image"
+  value       = aws_ecr_repository.customer_registration_app.repository_url
+}

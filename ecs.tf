@@ -9,7 +9,8 @@ module "ecs_app_customer_registration" {
   cluster_name       = module.ecs_cluster.name
   cluster_arn        = module.ecs_cluster.arn
   app_name           = "customer-registration"
-  image_name         = "${aws_ecr_repository.nginx.repository_url}:latest"
+  image_name         = "${aws_ecr_repository.customer_registration_app.repository_url}:latest"
+  internal_port      = 8080
   subnet_ids         = aws_subnet.app[*].id
   security_group_ids = [aws_security_group.ecs_app.id]
 
