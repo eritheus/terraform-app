@@ -1,8 +1,11 @@
+# ECS Clusters
 
 module "ecs_cluster" {
   source = "git::https://github.com/eritheus/terraform-modules.git//ecs-cluster?ref=main"
   name   = "registration"
 }
+
+# ECS Apps
 
 module "ecs_app_customer_registration" {
   source             = "git::https://github.com/eritheus/terraform-modules.git//ecs-app?ref=main"
