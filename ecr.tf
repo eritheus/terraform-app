@@ -42,6 +42,16 @@ output "nginx_repository_url" {
 
 # App image built and pushed by customer-registration-app's CI (build-and-push.yml).
 # Name has no env prefix to match the repo the workflow already created/pushes to.
+# Import block: the CI workflow may create this repo before Terraform ever
+# manages it (or state may be new, e.g. a fresh workspace). Terraform checks
+# state first, so this is a no-op if it's already tracked, and adopts the
+# existing repo instead of erroring with RepositoryAlreadyExistsException
+# if it isn't.
+import {
+  to = aws_ecr_repository.customer_registration_app
+  id = "customer-registration-app"
+}
+
 resource "aws_ecr_repository" "customer_registration_app" {
   name         = "customer-registration-app"
   force_delete = true
