@@ -11,6 +11,7 @@ module "ecs_app_customer_registration" {
   app_name           = "customer-registration"
   image_name         = "${aws_ecr_repository.customer_registration_app.repository_url}:latest"
   internal_port      = 8080
+  health_check_path  = "/health"
   subnet_ids         = aws_subnet.app[*].id
   security_group_ids = [aws_security_group.ecs_app.id]
 
