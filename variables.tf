@@ -39,3 +39,13 @@ variable "table_ttl_attribute_name" {
   type        = string
   default     = "ExpiresAt"
 }
+
+variable "domain_name" {
+  description = "Domain name already owned outside AWS, used for the Route53 hosted zone and ACM certificate"
+  type        = string
+}
+
+variable "allowed_cidrs" {
+  description = "Team IP/CIDR allowlist for inbound access to the ALB (Fase 0 - no WAF yet, access control is this SG)"
+  type        = list(string)
+}

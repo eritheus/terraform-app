@@ -5,17 +5,19 @@ module "ecs_cluster" {
 }
 
 module "ecs_app_customer_registration" {
-  source             = "git::https://github.com/eritheus/terraform-modules.git//ecs-app?ref=main"
-  cluster_name       = module.ecs_cluster.name
-  cluster_arn        = module.ecs_cluster.arn
-  app_name           = "customer-registration"
-  image_name         = "${aws_ecr_repository.customer_registration_app.repository_url}:latest"
-  internal_port      = 8080
-  health_check_path  = "/health"
-  subnet_ids         = aws_subnet.app[*].id
-  security_group_ids = [aws_security_group.ecs_app.id]
+  source              = "git::https://github.com/eritheus/terraform-modules.git//ecs-app?ref=main"
+  cluster_name        = module.ecs_cluster.name
+  cluster_arn         = module.ecs_cluster.arn
+  app_name            = "customer-registration"
+  image_name          = "${aws_ecr_repository.customer_registration_app.repository_url}:latest"
+  internal_port       = 8080
+  health_check_path   = "/health"
+  subnet_ids          = aws_subnet.app[*].id
+  security_group_ids  = [aws_security_group.ecs_app.id]
+  dynamodb_table_arns = [module.dynamo_customer_registration.arn]
+  target_group_arn    = module.alb.target_group_arn
 
-  depends_on = [module.ecs_cluster]
+  depends_on = [module.ecs_cluster, module.alb]
 }
 
 module "ecs_app_product_registration" {
