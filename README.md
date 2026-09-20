@@ -39,6 +39,7 @@ flowchart LR
     n_aws_subnet_data["Subnet - data"]:::network
     n_aws_subnet_public["Subnet - public"]:::network
     n_aws_vpc_app_vpc["VPC - app_vpc"]:::network
+    n_aws_vpc_endpoint_dynamodb["VPC Endpoint - dynamodb"]:::network
     n_aws_vpc_endpoint_interface["VPC Endpoint - interface"]:::network
     n_aws_vpc_endpoint_s3["VPC Endpoint - s3"]:::network
   end
@@ -89,6 +90,7 @@ flowchart LR
   n_aws_subnet_app --> n_aws_vpc_app_vpc
   n_aws_subnet_data --> n_aws_vpc_app_vpc
   n_aws_subnet_public --> n_aws_vpc_app_vpc
+  n_aws_vpc_endpoint_dynamodb --> n_aws_vpc_app_vpc
   n_aws_vpc_endpoint_interface --> n_aws_security_group_vpc_endpoints
   n_aws_vpc_endpoint_interface --> n_aws_subnet_app
   n_aws_vpc_endpoint_s3 --> n_aws_vpc_app_vpc
