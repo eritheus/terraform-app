@@ -16,6 +16,9 @@ module "ecs_app_customer_registration" {
   security_group_ids  = [aws_security_group.ecs_app.id]
   dynamodb_table_arns = [module.dynamo_customer_registration.arn]
   target_group_arn    = module.alb.target_group_arn
+  environment_variables = {
+    "DynamoDb__TableName" = module.dynamo_customer_registration.name
+  }
 
   depends_on = [module.ecs_cluster, module.alb]
 }

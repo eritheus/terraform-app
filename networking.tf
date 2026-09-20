@@ -124,3 +124,20 @@ resource "aws_vpc_endpoint" "s3" {
     Name = "${var.env_name}-s3-endpoint"
   }
 }
+
+# Gateway endpoint (free, no hourly cost like the interface endpoints above)
+# so tasks in the private `app` subnets can reach DynamoDB. Without this,
+# calls to DynamoDB from the app subnets have no route out at all (no NAT,
+# no IGW route there) and just hang until the caller's timeout - this was
+# missing and caused GET / (which calls DynamoDB) to hang and 504 at the
+# ALB, while /health (no DynamoDB call) kept responding fine.
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.app_vpc.id
+  service_name      = "com.amazonaws.us-east-2.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_vpc.app_vpc.main_route_table_id]
+
+  tags = {
+    Name = "${var.env_name}-dynamodb-endpoint"
+  }
+}
