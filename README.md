@@ -19,10 +19,20 @@ flowchart LR
   classDef observability fill:#F3E5F5,stroke:#8E24AA,color:#4A148C;
   classDef other fill:#ECEFF1,stroke:#78909C,color:#37474F;
   subgraph root["terraform-app · raiz"]
+    n_aws_acm_certificate_app["ACM Certificate - app"]:::security
+    n_aws_acm_certificate_validation_app["ACM Certificate Validation - app"]:::security
     n_aws_ecr_lifecycle_policy_customer_registration_app["ECR Lifecycle Policy - customer_registration_app"]:::data
     n_aws_ecr_lifecycle_policy_nginx["ECR Lifecycle Policy - nginx"]:::data
     n_aws_ecr_repository_customer_registration_app["ECR Repository - customer_registration_app"]:::data
     n_aws_ecr_repository_nginx["ECR Repository - nginx"]:::data
+    n_aws_internet_gateway_this["Internet Gateway - this"]:::network
+    n_aws_route53_record_app["Route53 Record - app"]:::network
+    n_aws_route53_record_cert_validation["Route53 Record - cert_validation"]:::network
+    n_aws_route53_record_dev_delegation["Route53 Record - dev_delegation"]:::network
+    n_aws_route53_zone_dev["Route53 Zone - dev"]:::network
+    n_aws_route_table_public["Route Table - public"]:::network
+    n_aws_route_table_association_public["Route Table Association - public"]:::network
+    n_aws_security_group_alb["Security Group - alb"]:::security
     n_aws_security_group_ecs_app["Security Group - ecs_app"]:::security
     n_aws_security_group_vpc_endpoints["Security Group - vpc_endpoints"]:::security
     n_aws_subnet_app["Subnet - app"]:::network
@@ -32,6 +42,12 @@ flowchart LR
     n_aws_vpc_endpoint_interface["VPC Endpoint - interface"]:::network
     n_aws_vpc_endpoint_s3["VPC Endpoint - s3"]:::network
   end
+  subgraph mod_n_alb["Módulo - alb"]
+    n_module_alb_aws_lb_this["Lb - this"]:::compute
+    n_module_alb_aws_lb_listener_http_redirect["Lb Listener - http_redirect"]:::compute
+    n_module_alb_aws_lb_listener_https["Lb Listener - https"]:::compute
+    n_module_alb_aws_lb_target_group_this["Lb Target Group - this"]:::compute
+  end
   subgraph mod_n_dynamo_customer_registration["Módulo - dynamo_customer_registration"]
     n_module_dynamo_customer_registration_aws_dynamodb_table_this["DynamoDB Table - this"]:::data
   end
@@ -40,6 +56,8 @@ flowchart LR
     n_module_ecs_app_customer_registration_aws_ecs_service_this["ECS Service - this"]:::compute
     n_module_ecs_app_customer_registration_aws_ecs_task_definition_this["ECS Task Definition - this"]:::compute
     n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_execution_role["IAM Role - ecs_task_execution_role"]:::security
+    n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_role["IAM Role - ecs_task_role"]:::security
+    n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_dynamodb_policy["IAM Role Policy - ecs_task_dynamodb_policy"]:::security
     n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_execution_policy["IAM Role Policy - ecs_task_execution_policy"]:::security
   end
   subgraph mod_n_ecs_app_product_registration["Módulo - ecs_app_product_registration"]
@@ -47,14 +65,26 @@ flowchart LR
     n_module_ecs_app_product_registration_aws_ecs_service_this["ECS Service - this"]:::compute
     n_module_ecs_app_product_registration_aws_ecs_task_definition_this["ECS Task Definition - this"]:::compute
     n_module_ecs_app_product_registration_aws_iam_role_ecs_task_execution_role["IAM Role - ecs_task_execution_role"]:::security
+    n_module_ecs_app_product_registration_aws_iam_role_ecs_task_role["IAM Role - ecs_task_role"]:::security
+    n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_dynamodb_policy["IAM Role Policy - ecs_task_dynamodb_policy"]:::security
     n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_execution_policy["IAM Role Policy - ecs_task_execution_policy"]:::security
   end
   subgraph mod_n_ecs_cluster["Módulo - ecs_cluster"]
     n_module_ecs_cluster_aws_ecs_cluster_this["ECS Cluster - this"]:::compute
   end
+  n_aws_acm_certificate_validation_app --> n_aws_route53_record_cert_validation
   n_aws_ecr_lifecycle_policy_customer_registration_app --> n_aws_ecr_repository_customer_registration_app
   n_aws_ecr_lifecycle_policy_nginx --> n_aws_ecr_repository_nginx
-  n_aws_security_group_ecs_app --> n_aws_vpc_app_vpc
+  n_aws_internet_gateway_this --> n_aws_vpc_app_vpc
+  n_aws_route53_record_app --> n_aws_route53_zone_dev
+  n_aws_route53_record_cert_validation --> n_aws_acm_certificate_app
+  n_aws_route53_record_cert_validation --> n_aws_route53_zone_dev
+  n_aws_route53_record_dev_delegation --> n_aws_route53_zone_dev
+  n_aws_route_table_public --> n_aws_internet_gateway_this
+  n_aws_route_table_association_public --> n_aws_route_table_public
+  n_aws_route_table_association_public --> n_aws_subnet_public
+  n_aws_security_group_alb --> n_aws_vpc_app_vpc
+  n_aws_security_group_ecs_app --> n_aws_security_group_alb
   n_aws_security_group_vpc_endpoints --> n_aws_vpc_app_vpc
   n_aws_subnet_app --> n_aws_vpc_app_vpc
   n_aws_subnet_data --> n_aws_vpc_app_vpc
@@ -62,26 +92,39 @@ flowchart LR
   n_aws_vpc_endpoint_interface --> n_aws_security_group_vpc_endpoints
   n_aws_vpc_endpoint_interface --> n_aws_subnet_app
   n_aws_vpc_endpoint_s3 --> n_aws_vpc_app_vpc
+  n_module_alb_aws_lb_listener_http_redirect --> n_module_alb_aws_lb_this
+  n_module_alb_aws_lb_listener_https --> n_module_alb_aws_lb_this
+  n_module_alb_aws_lb_listener_https --> n_module_alb_aws_lb_target_group_this
   n_module_ecs_app_customer_registration_aws_ecs_service_this --> n_module_ecs_app_customer_registration_aws_ecs_task_definition_this
   n_module_ecs_app_customer_registration_aws_ecs_service_this --> n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_execution_policy
   n_module_ecs_app_customer_registration_aws_ecs_task_definition_this --> n_module_ecs_app_customer_registration_aws_cloudwatch_log_group_ecs_logs
   n_module_ecs_app_customer_registration_aws_ecs_task_definition_this --> n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_execution_role
+  n_module_ecs_app_customer_registration_aws_ecs_task_definition_this --> n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_role
+  n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_dynamodb_policy --> n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_role
   n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_execution_policy --> n_module_ecs_app_customer_registration_aws_cloudwatch_log_group_ecs_logs
   n_module_ecs_app_customer_registration_aws_iam_role_policy_ecs_task_execution_policy --> n_module_ecs_app_customer_registration_aws_iam_role_ecs_task_execution_role
   n_module_ecs_app_product_registration_aws_ecs_service_this --> n_module_ecs_app_product_registration_aws_ecs_task_definition_this
   n_module_ecs_app_product_registration_aws_ecs_service_this --> n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_execution_policy
   n_module_ecs_app_product_registration_aws_ecs_task_definition_this --> n_module_ecs_app_product_registration_aws_cloudwatch_log_group_ecs_logs
   n_module_ecs_app_product_registration_aws_ecs_task_definition_this --> n_module_ecs_app_product_registration_aws_iam_role_ecs_task_execution_role
+  n_module_ecs_app_product_registration_aws_ecs_task_definition_this --> n_module_ecs_app_product_registration_aws_iam_role_ecs_task_role
+  n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_dynamodb_policy --> n_module_ecs_app_product_registration_aws_iam_role_ecs_task_role
   n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_execution_policy --> n_module_ecs_app_product_registration_aws_cloudwatch_log_group_ecs_logs
   n_module_ecs_app_product_registration_aws_iam_role_policy_ecs_task_execution_policy --> n_module_ecs_app_product_registration_aws_iam_role_ecs_task_execution_role
+  mod_n_ecs_app_customer_registration ==>|usa| mod_n_alb
+  mod_n_ecs_app_customer_registration ==>|usa| mod_n_dynamo_customer_registration
   mod_n_ecs_app_customer_registration ==>|usa| mod_n_ecs_cluster
   mod_n_ecs_app_product_registration ==>|usa| mod_n_ecs_cluster
+  mod_n_alb -. usa .-> n_aws_acm_certificate_validation_app
+  mod_n_alb -. usa .-> n_aws_route_table_association_public
+  mod_n_alb -. usa .-> n_aws_security_group_alb
   mod_n_ecs_app_customer_registration -. usa .-> n_aws_ecr_repository_customer_registration_app
   mod_n_ecs_app_customer_registration -. usa .-> n_aws_security_group_ecs_app
   mod_n_ecs_app_customer_registration -. usa .-> n_aws_subnet_app
   mod_n_ecs_app_product_registration -. usa .-> n_aws_ecr_repository_nginx
   mod_n_ecs_app_product_registration -. usa .-> n_aws_security_group_ecs_app
   mod_n_ecs_app_product_registration -. usa .-> n_aws_subnet_app
+  n_aws_route53_record_app -. usa .-> mod_n_alb
   subgraph legenda["Legenda"]
     direction LR
     leg_network["Rede"]:::network
@@ -91,6 +134,7 @@ flowchart LR
     leg_observability["Observabilidade"]:::observability
   end
   style root fill:#FAFAFA,stroke:#E0E0E0;
+  style mod_n_alb fill:#FAFAFA,stroke:#CFD8DC;
   style mod_n_dynamo_customer_registration fill:#FAFAFA,stroke:#CFD8DC;
   style mod_n_ecs_app_customer_registration fill:#FAFAFA,stroke:#CFD8DC;
   style mod_n_ecs_app_product_registration fill:#FAFAFA,stroke:#CFD8DC;
