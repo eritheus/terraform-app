@@ -34,3 +34,6 @@ terraform.rc
 zzz_diagram_override.tf
 .terraform.diagrams/
 .DS_Store
+
+# JetBrains IDE
+.idea/
